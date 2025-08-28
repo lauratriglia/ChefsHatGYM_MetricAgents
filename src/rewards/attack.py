@@ -10,7 +10,7 @@ class RewardAttack:
     def __init__(self, agent_name):
         self.agent_name = agent_name
 
-    def get_reward_strong(self, info):
+    def get_reward(self, info):
         """
         Reward is 1 if 3 passes occur after the agent's discard, otherwise -0.05.
         """
@@ -19,7 +19,7 @@ class RewardAttack:
             agent_name = info.get("agent_name")
 
             if not actions or not agent_name:
-                return -0.05
+                return -1.0
 
             # Find index of agent's discard action (non-pass)
             discard_index = None
@@ -29,7 +29,7 @@ class RewardAttack:
                     break
 
             if discard_index is None:
-                return -0.05
+                return -2.0
 
             # Count passes after discard
             passes_after_discard = 0
@@ -44,7 +44,7 @@ class RewardAttack:
             if passes_after_discard == 3:
                 return 1.0
             else:
-                return -0.05
+                return -1.0
 
         except Exception as e:
             print(f"[RewardAttack] Error: {e}")
@@ -52,7 +52,7 @@ class RewardAttack:
         
 
     
-    def get_reward(self, info):
+    def get_reward_weak(self, info):
         """
         Calculate the attack reward based on how many passes happen
         after the agent's discard in the action sequence.
@@ -77,7 +77,7 @@ class RewardAttack:
 
             if discard_index is None:
                 # Agent did not discard this round
-                return 0.0
+                return -2.0
 
             # Count passes after discard (max 3 passes)
             passes_after_discard = 0

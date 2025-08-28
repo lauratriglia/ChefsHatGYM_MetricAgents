@@ -137,8 +137,6 @@ class AgentDQLCustomReward(DQNAgent):
                 exp[3] = self.last_custom_reward  # Set reward
                 self.episode[idx] = tuple(exp)
             self.round_transition_indices = []  # Reset for next round
-            # Store the custom reward for this round (optional, for logging)
-            self.match_custom_rewards.append(self.last_custom_reward)
             self.current_turn_actions = []
 
     def update_match_over(self, payload):
@@ -155,8 +153,12 @@ class AgentDQLCustomReward(DQNAgent):
 
         self.positions.append(place)
 
+        
         # Now do the training like the original DQN, but with per-round custom rewards
         if self.train:
+            # If last_custom_reward is 1 and agent is first, set to 3
+            if hasattr(self, 'last_custom_reward') and self.last_custom_reward == 1 and place == 1:
+                self.last_custom_reward = 5
             start_time = time.time()
             # Mark last transition as terminal
             if (
@@ -165,10 +167,17 @@ class AgentDQLCustomReward(DQNAgent):
                 and self.last_possible_actions is not None
                 and len(self.episode) > 0
             ):
-                last_exp = self.episode[-1]
-                self.episode[-1] = (
-                    last_exp[0], last_exp[1], last_exp[2], last_exp[3], last_exp[4], last_exp[5], True
+                self.episode.append(
+                (
+                    self.last_state,
+                    self.last_possible_actions,
+                    self.last_action,
+                    self.last_custom_reward,
+                    self.last_state,
+                    self.last_possible_actions,
+                    True,
                 )
+            )
             # Process all episode experiences and add to memory
             for exp in self.episode:
                 self.remember(*exp)
@@ -177,32 +186,10 @@ class AgentDQLCustomReward(DQNAgent):
             end_time = time.time()
             elapsed = end_time - start_time
             self.training_durations.append(elapsed)
-        # Clean up    self.last_custom_reward = self.reward.get_reward(reward_info)
-            # Assign this reward to all transitions in this round
-            for idx in self.round_transition_indices:
-                exp = list(self.episode[idx])
-                exp[3] = self.last_custom_reward  # Set reward
-                self.episode[idx] = tuple(exp)
-            self.round_transition_indices = []  # Reset for next round
-            # Store the custom reward for this round (optional, for logging)
             self.match_custom_rewards.append(self.last_custom_reward)
             self.current_turn_actions = []
         self.current_turn_actions = []
         self.match_custom_rewards = []
         self.round_transition_indices = []
 
-    def plot_time(self, path: str):
-        import matplotlib.pyplot as plt
-        
-        if not hasattr(self, "training_durations") or len(self.training_durations) == 0:
-            print("[plot_time] Warning: No training duration data to plot.")
-            return
-            
-        plt.figure()
-        plt.plot(self.training_durations)
-        plt.xlabel("Training Iteration")
-        plt.ylabel("Duration (s)")
-        plt.title("Training Time per Iteration")
-        plt.tight_layout()
-        plt.savefig(path)
-        plt.close()
+   

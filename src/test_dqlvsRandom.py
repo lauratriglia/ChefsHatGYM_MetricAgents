@@ -5,6 +5,7 @@ import ast
 import pandas as pd
 import matplotlib.pyplot as plt
 from agents.random_agent import RandomAgent
+from agents.agent_dqn import DQNAgent
 from agents.agent_att import AgentDQLCustomReward
 from rooms.room import Room
 from datetime import datetime
@@ -20,7 +21,7 @@ def run_room(
 ):
     room = Room(
         run_remote_room=False,
-        room_name="Room_DQL_vs_Random",
+        room_name="Room_DQL_vs_Random_1kmatches_",
         max_matches=matches,
         output_folder=output_folder,
         save_game_dataset=save_game_dataset,
@@ -94,14 +95,14 @@ if __name__ == "__main__":
     train_agent.plot_loss(os.path.join(train_room.room_dir, "attack_training_loss.png"))
     train_agent.plot_positions(os.path.join(train_room.room_dir, "attack_training_positions.png"))
     train_agent.plot_score_progression(os.path.join(train_room.room_dir, "attack_training_progression.png"))
-    train_agent.plot_time(os.path.join(train_room.room_dir, "attack_training_time.png"))
+    
     
     print(f"TRAINING DONE! Training time: {(datetime.now() - now).total_seconds()}")
     now = datetime.now()
 
     # === TEST ===
     test_room, test_agent = run_room(
-        False, model_file, True, True, 100, "outputs_test"
+        False, model_file, False, True, 100, "outputs_test"
     )
     
     # Plot test results
@@ -109,7 +110,4 @@ if __name__ == "__main__":
     
     print(f"TESTING DONE! Testing time: {(datetime.now() - now).total_seconds()}")
 
-    # Optionally plot score distribution if dataset exists
-    dataset_file = os.path.join(test_room.room_dir, "dataset", "game_dataset.pkl.csv")
-    if os.path.exists(dataset_file):
-        plot_score_distribution(dataset_file, os.path.join(test_room.room_dir, "score_progression.png"))
+    

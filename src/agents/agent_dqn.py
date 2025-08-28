@@ -380,6 +380,14 @@ class DQNAgent(BaseAgent):
         plt.figure()
         x = range(len(self.positions))
         y = self.positions
+        # Add colored regions for positions 1 to 4
+        ax = plt.gca()
+        # More saturated colors
+        colors = ['#4caf50', '#2196f3', '#ff9800', '#f44336']
+        for pos in range(1, 5):
+            ax.axhspan(pos-0.5, pos+0.5, color=colors[pos-1], alpha=0.5)
+        ax.set_yticks([1, 2, 3, 4])
+        ax.set_yticklabels(['1', '2', '3', '4'])
         plt.plot(x, y, label="Position", linestyle="-", marker="o", alpha=0.8)
         plt.xlabel("Match")
         plt.ylabel("Position (1=1st, 4=4th)")
@@ -403,7 +411,7 @@ class DQNAgent(BaseAgent):
         cumulative = {p: 0 for p in players}
         for match in self.score_history:
             for p in players:
-                cumulative[p] += match[p]
+                cumulative[p] = match[p]
                 scores_per_player[p].append(cumulative[p])
 
         plt.figure(figsize=(8, 5))

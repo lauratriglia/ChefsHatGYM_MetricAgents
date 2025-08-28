@@ -1,5 +1,4 @@
 from typing import Any, Dict, List, Optional
-import random
 
 from .round import Round
 from ..utils.rules import assign_roles
@@ -43,10 +42,7 @@ class Match:
         dataset : DataSetManager | None, optional
             Dataset manager used to store gameplay information.
         """
-        # Randomize player positions at the beginning of each match
-        self.players = players.copy()  # Make a copy to avoid modifying the original list
-        random.shuffle(self.players)
-        
+        self.players = players
         self.match_number = match_number
         self.max_rounds = max_rounds
 
@@ -70,10 +66,6 @@ class Match:
         self.logger.engine_log(f"- Match Number: {self.match_number}{total_matches}")
         scores_summary = ", ".join(f"{s}:{current_scores[s]}" for s in current_scores)
         self.logger.engine_log(f"- Current Game Scores: {{{scores_summary}}}")
-        
-        # Log the randomized player order
-        player_order = ", ".join(f"{i+1}:{p.name}" for i, p in enumerate(self.players))
-        self.logger.engine_log(f"- Randomized Player Order: {{{player_order}}}")
 
         # if match_number > 1:
         #     assign_roles(self.players)
