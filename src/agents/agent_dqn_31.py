@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(0, '/usr/local/src/robot/cognitiveInteraction/ChefHatGYM_v3/ChefsHatGYM/src')
+
 from agents.agent_dqn import DQNAgent  
 from rewards.attack import RewardAttack  
 import numpy as np
@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 def dueling_lambda(a):
     return a - tf.reduce_mean(a, axis=1, keepdims=True)
 
-class AgentDQLCustomReward(DQNAgent):
+class AgentDQN31(DQNAgent):
     def __init__(self, name, *args, **kwargs):
         # Set default state_size for custom reward agent (hand + board + card_counts)
         kwargs.setdefault('state_size', 31)
@@ -86,7 +86,7 @@ class AgentDQLCustomReward(DQNAgent):
                     self.last_state,
                     self.last_possible_actions,
                     self.last_action,
-                    0.0,  # Placeholder, will be set in update_pizza_declared
+                    shaped_reward,  # Placeholder, will be set in update_pizza_declared
                     obs,
                     possible_actions_mask,
                     False,
@@ -121,75 +121,5 @@ class AgentDQLCustomReward(DQNAgent):
 
         # No need for match_memory - we'll use only the episode memory from request_action
     
-    def update_pizza_declared(self, info):
-        """
-        Called at the end of a round. Calculate custom reward and assign it to all transitions in this round.
-        """
-        reward_info = {
-            "player_actions": self.current_turn_actions,
-            "agent_name": self.name,
-        }
-        if self.train:
-            self.last_custom_reward = self.reward.get_reward(reward_info)
-            # Assign this reward to all transitions in this round
-            for idx in self.round_transition_indices:
-                exp = list(self.episode[idx])
-                exp[3] = self.last_custom_reward  # Set reward
-                self.episode[idx] = tuple(exp)
-            self.round_transition_indices = []  # Reset for next round
-            self.current_turn_actions = []
 
-    def update_match_over(self, payload):
-        finishing_order = payload.get("finishing_order", [])
-        scores = payload.get("scores", {})
-        player_name = self.name
 
-        self.score_history.append(payload["scores"])
-
-        try:
-            place = finishing_order.index(player_name) + 1
-        except ValueError:
-            place = len(finishing_order)
-
-        self.positions.append(place)
-
-        
-        # Now do the training like the original DQN, but with per-round custom rewards
-        if self.train:
-            # If last_custom_reward is 1 and agent is first, set to 3
-            if hasattr(self, 'last_custom_reward') and self.last_custom_reward == 1 and place == 1:
-                self.last_custom_reward = 10
-            start_time = time.time()
-            # Mark last transition as terminal
-            if (
-                self.last_state is not None
-                and self.last_action is not None
-                and self.last_possible_actions is not None
-                and len(self.episode) > 0
-            ):
-                self.episode.append(
-                (
-                    self.last_state,
-                    self.last_possible_actions,
-                    self.last_action,
-                    self.last_custom_reward,
-                    self.last_state,
-                    self.last_possible_actions,
-                    True,
-                )
-            )
-            # Process all episode experiences and add to memory
-            for exp in self.episode:
-                self.remember(*exp)
-            self.episode = []
-            self.replay()
-            end_time = time.time()
-            elapsed = end_time - start_time
-            self.training_durations.append(elapsed)
-            self.match_custom_rewards.append(self.last_custom_reward)
-            self.current_turn_actions = []
-        self.current_turn_actions = []
-        self.match_custom_rewards = []
-        self.round_transition_indices = []
-
-   

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from agents.random_agent import RandomAgent
 from agents.agent_dqn import DQNAgent
 from agents.agent_att import AgentDQLCustomReward
+from agents.agent_dqn_31 import AgentDQN31
 from rooms.room import Room
 from datetime import datetime
 
@@ -21,7 +22,7 @@ def run_room(
 ):
     room = Room(
         run_remote_room=False,
-        room_name="Room_DQL_vs_Random_1kmatches_",
+        room_name="Room_DQL_atk_vs_Random_1kmatches_",
         max_matches=matches,
         output_folder=output_folder,
         save_game_dataset=save_game_dataset,
@@ -39,7 +40,7 @@ def run_room(
 
     # Connect the DQL agent with custom reward
     agent = AgentDQLCustomReward(
-        "DQLCustomReward",
+        "DQL_ATK",
         train=training,
         log_directory=room.room_dir,
         verbose_console=False,
