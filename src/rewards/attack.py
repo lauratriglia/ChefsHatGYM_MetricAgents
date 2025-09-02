@@ -29,7 +29,7 @@ class RewardAttack:
                     break
 
             if discard_index is None:
-                return -2.0
+                return -3.0
 
             # Count passes after discard
             passes_after_discard = 0
@@ -42,9 +42,9 @@ class RewardAttack:
                     break
 
             if passes_after_discard == 3:
-                return 1.0
+                return 3.0
             else:
-                return -1.0
+                return -2.0
 
         except Exception as e:
             print(f"[RewardAttack] Error: {e}")

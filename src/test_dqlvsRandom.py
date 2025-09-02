@@ -6,7 +6,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from agents.random_agent import RandomAgent
 from agents.agent_dqn import DQNAgent
-from agents.agent_att import AgentDQLCustomReward
+from agents.agent_metric import AgentDQLCustomReward
 from agents.agent_dqn_31 import AgentDQN31
 from rooms.room import Room
 from datetime import datetime
@@ -46,6 +46,7 @@ def run_room(
         verbose_console=False,
         model_path=model_path,
         load_model=not training,
+        reward_type="attack"
     )
     room.connect_player(agent)
     asyncio.run(room.run())
@@ -93,9 +94,9 @@ if __name__ == "__main__":
     )
     
     # Plot training results
-    train_agent.plot_loss(os.path.join(train_room.room_dir, "attack_training_loss.png"))
-    train_agent.plot_positions(os.path.join(train_room.room_dir, "attack_training_positions.png"))
-    train_agent.plot_score_progression(os.path.join(train_room.room_dir, "attack_training_progression.png"))
+    train_agent.plot_loss(os.path.join(train_room.room_dir, "training_loss.png"))
+    train_agent.plot_positions(os.path.join(train_room.room_dir, "training_positions.png"))
+    train_agent.plot_score_progression(os.path.join(train_room.room_dir, "training_progression.png"))
     
     
     print(f"TRAINING DONE! Training time: {(datetime.now() - now).total_seconds()}")
@@ -107,7 +108,7 @@ if __name__ == "__main__":
     )
     
     # Plot test results
-    test_agent.plot_score_progression(os.path.join(test_room.room_dir, "attack_test_progression.png"))
+    test_agent.plot_score_progression(os.path.join(test_room.room_dir, "test_progression.png"))
     
     print(f"TESTING DONE! Testing time: {(datetime.now() - now).total_seconds()}")
 

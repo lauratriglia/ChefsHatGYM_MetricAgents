@@ -4,7 +4,7 @@ import ast
 import pandas as pd
 import matplotlib.pyplot as plt
 from agents.random_agent import RandomAgent
-from agents.agent_att import AgentDQLCustomReward
+from agents.agent_metric import AgentDQLCustomReward
 from agents.agent_dqn import DQNAgent
 from agents.larger_value import LargerValue
 from rooms.room import Room

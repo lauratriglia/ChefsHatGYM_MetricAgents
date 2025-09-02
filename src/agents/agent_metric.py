@@ -1,7 +1,7 @@
-import sys
-sys.path.insert(0, '/usr/local/src/robot/cognitiveInteraction/ChefHatGYM_v3/ChefsHatGYM/src')
+
 from agents.agent_dqn import DQNAgent  
 from rewards.attack import RewardAttack  
+from rewards.defense import RewardDefense
 import numpy as np
 import itertools
 import time
@@ -16,13 +16,17 @@ def dueling_lambda(a):
     return a - tf.reduce_mean(a, axis=1, keepdims=True)
 
 class AgentDQLCustomReward(DQNAgent):
-    def __init__(self, name, *args, **kwargs):
-        # Set default state_size for custom reward agent (hand + board + card_counts)
+    def __init__(self, name, reward_type="attack", *args, **kwargs):
         kwargs.setdefault('state_size', 31)
         super().__init__(name, *args, **kwargs)
         
-        # ✅ Custom fields
-        self.reward = RewardAttack(agent_name=self.name)                
+        # Select reward metric
+        if reward_type == "attack":
+            self.reward = RewardAttack(agent_name=self.name)
+        elif reward_type == "defense":
+            self.reward = RewardDefense(agent_name=self.name)
+        else:
+            raise ValueError(f"Unknown reward_type: {reward_type}")       
         self.current_turn_actions = []           
         self.last_action_per_player = []         
         self.last_custom_reward = 0.0  
@@ -157,8 +161,8 @@ class AgentDQLCustomReward(DQNAgent):
         # Now do the training like the original DQN, but with per-round custom rewards
         if self.train:
             # If last_custom_reward is 1 and agent is first, set to 3
-            if hasattr(self, 'last_custom_reward') and self.last_custom_reward == 1 and place == 1:
-                self.last_custom_reward = 10
+            if hasattr(self, 'last_custom_reward') and self.last_custom_reward == 3 and place == 1:
+                self.last_custom_reward = 5
             start_time = time.time()
             # Mark last transition as terminal
             if (
