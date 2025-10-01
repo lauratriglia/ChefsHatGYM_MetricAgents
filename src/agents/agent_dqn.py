@@ -27,7 +27,7 @@ class DQNAgent(BaseAgent):
         lr=1e-2,
         epsilon=1.0,
         epsilon_min=0.05,
-        epsilon_decay=0.995,  # Changed from 0.995 to 0.999 for slower decay
+        epsilon_decay=0.995,
         batch_size=128,
         memory_size=10000,
         log_directory: str = "",
@@ -35,8 +35,23 @@ class DQNAgent(BaseAgent):
         train: bool = True,
         model_path: str = None,
         load_model: bool = False,
+        run_remote=False,
+        host="localhost",
+        port=8765,
+        room_name="room",
+        room_password="password",
     ):
-        super().__init__(name, log_directory, verbose_console)
+        super().__init__(
+            name,
+            log_directory,
+            verbose_console,
+            run_remote,
+            host,
+            port,
+            room_name,
+            room_password,
+        )
+
         self.state_size = state_size
         self.action_size = action_size
         self.memory = deque(maxlen=memory_size)
@@ -55,6 +70,7 @@ class DQNAgent(BaseAgent):
         self.loss_history = []
         self.epsilon_history = []
         self.positions = []
+        self.rewards = []
         self.score_history = []
         self.all_actions = None
         self.verbose_console = verbose_console
@@ -198,7 +214,7 @@ class DQNAgent(BaseAgent):
                 )
             losses.append(abs(old_val - target[i][a]))
 
-        history = self.model.fit(states, target, epochs=1, verbose=0)
+        history = self.model.fit(states, target, epochs=200, verbose=0)
         avg_loss = (
             float(np.mean(losses))
             if losses
@@ -214,12 +230,16 @@ class DQNAgent(BaseAgent):
     # Integration functions and reward shaping as before (unchanged)
 
     def update_game_start(self, info):
+
+        self.score_history = []
+
         if "actions" in info:
             self.all_actions = list(info["actions"].values())
             if self.verbose_console:
                 self.log(f"Received ordered list of Actions: {self.all_actions}")
 
     def update_game_over(self, payload):
+
         if self.train and self.model_path:
             os.makedirs(os.path.dirname(self.model_path), exist_ok=True)
             self.model.save(self.model_path)
@@ -294,6 +314,7 @@ class DQNAgent(BaseAgent):
             place = len(finishing_order)
 
         reward, place = self._get_final_reward_and_place(payload)
+        self.rewards.append(reward)
         self.positions.append(place)
 
         if (
@@ -380,14 +401,6 @@ class DQNAgent(BaseAgent):
         plt.figure()
         x = range(len(self.positions))
         y = self.positions
-        # Add colored regions for positions 1 to 4
-        ax = plt.gca()
-        # More saturated colors
-        colors = ['#4caf50', '#2196f3', '#ff9800', '#f44336']
-        for pos in range(1, 5):
-            ax.axhspan(pos-0.5, pos+0.5, color=colors[pos-1], alpha=0.5)
-        ax.set_yticks([1, 2, 3, 4])
-        ax.set_yticklabels(['1', '2', '3', '4'])
         plt.plot(x, y, label="Position", linestyle="-", marker="o", alpha=0.8)
         plt.xlabel("Match")
         plt.ylabel("Position (1=1st, 4=4th)")
@@ -424,3 +437,7 @@ class DQNAgent(BaseAgent):
         plt.tight_layout()
         plt.savefig(path)
         plt.close()
+    
+    
+
+    

@@ -1,4 +1,4 @@
-
+       
 from agents.agent_dqn import DQNAgent  
 from rewards.attack import RewardAttack  
 from rewards.defense import RewardDefense
@@ -33,7 +33,11 @@ class AgentDQLCustomReward(DQNAgent):
         self.training_durations = []
         self.player_card_counts = {}     
         self.player_card_counts_next = {}
-        self.match_custom_rewards = []  # Store custom rewards from each round  
+        self.rewards = []  # Store rewards per match
+        self.match_custom_rewards = []  # Store custom rewards from each round
+        self.attack = []
+        self.defense = []
+        self.vitality = []
         self.round_transition_indices = []  # NEW: indices of transitions in current round
 
     def _build_model(self, lr):
@@ -134,7 +138,12 @@ class AgentDQLCustomReward(DQNAgent):
             "agent_name": self.name,
         }
         if self.train:
-            self.last_custom_reward = self.reward.get_reward(reward_info)
+            self.last_custom_reward, attack, defense, vit = self.reward.get_reward(reward_info)
+            self.attack.append(attack)
+            self.defense.append(defense)    
+            self.vitality.append(vit)
+            if self.last_custom_reward != -1.0:
+                self.match_custom_rewards.append(self.last_custom_reward)
             # Assign this reward to all transitions in this round
             for idx in self.round_transition_indices:
                 exp = list(self.episode[idx])
@@ -161,9 +170,10 @@ class AgentDQLCustomReward(DQNAgent):
         # Now do the training like the original DQN, but with per-round custom rewards
         if self.train:
             # If last_custom_reward is 1 and agent is first, set to 3
-            if hasattr(self, 'last_custom_reward') and self.last_custom_reward == 3 and place == 1:
-                self.last_custom_reward = 5
+            # if hasattr(self, 'last_custom_reward') and self.last_custom_reward == 2 and place == 1:
+            #     self.last_custom_reward = 5
             start_time = time.time()
+            # self.rewards.append(self.last_custom_reward)  # Store reward for this match
             # Mark last transition as terminal
             if (
                 self.last_state is not None
@@ -190,10 +200,81 @@ class AgentDQLCustomReward(DQNAgent):
             end_time = time.time()
             elapsed = end_time - start_time
             self.training_durations.append(elapsed)
-            self.match_custom_rewards.append(self.last_custom_reward)
+            
             self.current_turn_actions = []
         self.current_turn_actions = []
-        self.match_custom_rewards = []
+        # self.match_custom_rewards = []  # Removed to preserve reward history
         self.round_transition_indices = []
 
-   
+    def plot_rewards(self, path: str, path_averaged: str, window: int = 10):
+        import matplotlib.pyplot as plt
+        self.rewards = self.match_custom_rewards  # Use the collected match rewards
+        if not hasattr(self, "rewards"):
+            print("[plot_positions] Warning: No rewards data to plot.")
+            return
+
+        plt.figure()
+        x = range(len(self.rewards))
+        y = self.rewards
+        plt.plot(x, y, label="Attack", linestyle="-", marker="o", alpha=0.8)
+        plt.xlabel("Match")
+        plt.ylabel("Rewards per match")
+        plt.title("Agent Reward per Match")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(path)
+        plt.close()
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        if not hasattr(self, "rewards"):
+            print("[plot_rewards] Warning: No rewards data to plot.")
+            return
+
+        rewards = np.array(self.rewards)
+        x = np.arange(len(rewards))
+
+        # Compute rolling average
+        if len(rewards) >= window:
+            rewards_avg = np.convolve(rewards, np.ones(window) / window, mode="valid")
+            x_avg = np.arange(window - 1, len(rewards))
+        else:
+            rewards_avg = rewards
+            x_avg = x
+
+        plt.cla()
+        plt.figure()
+        plt.plot(x, rewards, label="Reward (raw)", linestyle="-", marker="o", alpha=0.4)
+        plt.plot(
+            x_avg, rewards_avg, label=f"Reward (avg {window})", linewidth=2, alpha=0.9
+        )
+
+        plt.xlabel("Match")
+        plt.ylabel("Rewards per match")
+        plt.title("Agent Reward per Match")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(path_averaged)
+        plt.close()
+
+         # Second figure: moving averages of attack, defense, vitality
+        metrics = [(getattr(self, 'attack', []), 'Attack', 'red'),
+                   (getattr(self, 'defense', []), 'Defense', 'green'),
+                   (getattr(self, 'vitality', []), 'Vitality', 'purple')]
+        plt.figure(figsize=(10, 5))
+        for metric, label, color in metrics:
+            arr = np.array(metric)
+            if len(arr) >= window:
+                moving_avg = np.convolve(arr, np.ones(window)/window, mode='valid')
+                plt.plot(range(window-1, len(arr)), moving_avg, color=color, label=f'{label} (avg)')
+        plt.xlabel('Round')
+        plt.ylabel('Metric (Moving Avg)')
+        plt.title('Attack, Defense, Vitality (Moving Avg)')
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(path.replace('.png', '_metrics.png'))
+        plt.close()
+
+
+

@@ -37,17 +37,33 @@ def run_room(
     ]
     for a in agents:
         room.connect_player(a)
-
+    reward = "attack"
     # Connect the DQL agent with custom reward
-    agent = AgentDQLCustomReward(
-        "DQL_ATK",
+    # agent = AgentDQLCustomReward(
+    #     f"DQL_{reward}",
+    #     train=training,
+    #     log_directory=room.room_dir,
+    #     verbose_console=False,
+    #     model_path=model_path,
+    #     load_model=not training,
+    #     reward_type=reward
+    # )
+    agent = DQNAgent(
+        f"DQL_",
         train=training,
         log_directory=room.room_dir,
         verbose_console=False,
         model_path=model_path,
         load_model=not training,
-        reward_type="attack"
     )
+    # agent = AgentDQN31(
+    #     f"DQL_31",
+    #     train=training,
+    #     log_directory=room.room_dir,
+    #     verbose_console=False,
+    #     model_path=model_path,
+    #     load_model=not training,
+    # )
     room.connect_player(agent)
     asyncio.run(room.run())
 
@@ -81,7 +97,7 @@ def plot_score_distribution(dataset_path: str, output_path: str):
 
 
 if __name__ == "__main__":
-    model_file = os.path.join("outputs", "attack_agent_model.h5")
+    model_file = os.path.join("outputs", "dql_model.h5")
     
     now = datetime.now()
     train_room, train_agent = run_room(
@@ -89,7 +105,7 @@ if __name__ == "__main__":
         model_file,
         False,
         False,
-        1000,
+        10,
         "outputs",
     )
     
@@ -97,19 +113,21 @@ if __name__ == "__main__":
     train_agent.plot_loss(os.path.join(train_room.room_dir, "training_loss.png"))
     train_agent.plot_positions(os.path.join(train_room.room_dir, "training_positions.png"))
     train_agent.plot_score_progression(os.path.join(train_room.room_dir, "training_progression.png"))
+    train_agent.plot_rewards(os.path.join(train_room.room_dir, "training_rewards_positions.png"))
     
     
     print(f"TRAINING DONE! Training time: {(datetime.now() - now).total_seconds()}")
     now = datetime.now()
 
-    # === TEST ===
-    test_room, test_agent = run_room(
-        False, model_file, False, True, 100, "outputs_test"
-    )
+    # # === TEST ===
+    # test_room, test_agent = run_room(
+    #     False, model_file, False, True, 100, "outputs_test"
+    # )
     
-    # Plot test results
-    test_agent.plot_score_progression(os.path.join(test_room.room_dir, "test_progression.png"))
+    # # Plot test results
+    # test_agent.plot_score_progression(os.path.join(test_room.room_dir, "test_progression.png"))
+    # test_agent.plot_positions(os.path.join(test_room.room_dir, "test_positions.png"))
     
-    print(f"TESTING DONE! Testing time: {(datetime.now() - now).total_seconds()}")
+    # print(f"TESTING DONE! Testing time: {(datetime.now() - now).total_seconds()}")
 
     
