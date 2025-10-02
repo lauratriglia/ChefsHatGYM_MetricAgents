@@ -90,7 +90,7 @@ if __name__ == "__main__":
         model_file,
         False,
         False,
-        2,
+        100,
         "outputs",
     )
     
@@ -98,21 +98,24 @@ if __name__ == "__main__":
     train_agent.plot_loss(os.path.join(train_room.room_dir, "training_loss.png"))
     train_agent.plot_positions(os.path.join(train_room.room_dir, "training_positions.png"))
     train_agent.plot_score_progression(os.path.join(train_room.room_dir, "training_progression.png"))
-    train_agent.plot_rewards(os.path.join(train_room.room_dir, "training_rewards_positions.png"))
-    
+    train_agent.plot_rewards(
+        os.path.join(train_room.room_dir, "training_rewards_positions.png"),
+        os.path.join(train_room.room_dir, "rewards_smoothed.png"), 
+        window=100)
+
     
     print(f"TRAINING DONE! Training time: {(datetime.now() - now).total_seconds()}")
     now = datetime.now()
 
-    # # === TEST ===
-    # test_room, test_agent = run_room(
-    #     False, model_file, False, True, 100, "outputs_test"
-    # )
+    # === TEST ===
+    test_room, test_agent = run_room(
+         False, model_file, False, True, 100, "outputs_test"
+    )
     
-    # # Plot test results
-    # test_agent.plot_score_progression(os.path.join(test_room.room_dir, "test_progression.png"))
+    # Plot test results
+    test_agent.plot_score_progression(os.path.join(test_room.room_dir, "test_progression.png"))
     # test_agent.plot_positions(os.path.join(test_room.room_dir, "test_positions.png"))
     
-    # print(f"TESTING DONE! Testing time: {(datetime.now() - now).total_seconds()}")
+    print(f"TESTING DONE! Testing time: {(datetime.now() - now).total_seconds()}")
 
     

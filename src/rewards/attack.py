@@ -52,7 +52,7 @@ class RewardAttack:
             if attack == 3:
                 reward = 3.0
             else:
-                reward = -0.1
+                reward = -0.05
 
             return reward, attack, defense, vitality
 

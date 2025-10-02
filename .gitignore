@@ -1,5 +1,11 @@
 src/outputs
 src/outputs_test
 src/agents/__pycache__
+src/core/dataset/__pycache__
+src/core/game_env/__pycache__
+src/core/utils/__pycache__
+src/core/logging/__pycache__
+src/rewards/__pycache__
+src/rooms/__pycache__
 outputs
 outputs_test
