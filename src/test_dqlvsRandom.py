@@ -38,32 +38,17 @@ def run_room(
     for a in agents:
         room.connect_player(a)
     reward = "attack"
-    # Connect the DQL agent with custom reward
-    # agent = AgentDQLCustomReward(
-    #     f"DQL_{reward}",
-    #     train=training,
-    #     log_directory=room.room_dir,
-    #     verbose_console=False,
-    #     model_path=model_path,
-    #     load_model=not training,
-    #     reward_type=reward
-    # )
-    agent = DQNAgent(
-        f"DQL_",
+    #Connect the DQL agent with custom reward
+    agent = AgentDQLCustomReward(
+        f"DQL_{reward}",
         train=training,
         log_directory=room.room_dir,
         verbose_console=False,
         model_path=model_path,
         load_model=not training,
+        reward_type=reward
     )
-    # agent = AgentDQN31(
-    #     f"DQL_31",
-    #     train=training,
-    #     log_directory=room.room_dir,
-    #     verbose_console=False,
-    #     model_path=model_path,
-    #     load_model=not training,
-    # )
+    
     room.connect_player(agent)
     asyncio.run(room.run())
 
@@ -105,7 +90,7 @@ if __name__ == "__main__":
         model_file,
         False,
         False,
-        10,
+        2,
         "outputs",
     )
     

@@ -74,7 +74,7 @@ class DQNAgent(BaseAgent):
         self.score_history = []
         self.all_actions = None
         self.verbose_console = verbose_console
-
+        model_path = os.path.join(log_directory, "outputs", f"{self.name}_dqn_model.h5")
         if model_path is not None and load_model and os.path.exists(model_path):
             print(f"Loading main model from {model_path}")
             self.model = keras_load_model(

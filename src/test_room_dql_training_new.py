@@ -95,7 +95,7 @@ if __name__ == "__main__":
         model_file,
         False,
         False,
-        100,
+        3,
         "outputs",
     )
     train_agent.plot_loss(os.path.join(train_room.room_dir, "training_loss.png"))
