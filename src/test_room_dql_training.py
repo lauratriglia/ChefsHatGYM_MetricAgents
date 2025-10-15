@@ -6,23 +6,34 @@ import matplotlib.pyplot as plt
 from agents.random_agent import RandomAgent
 from agents.agent_dqn import DQNAgent
 from agents.agent_metric import AgentDQLCustomReward
-from agents.larger_value import LargerValue
 from rooms.room import Room
 from datetime import datetime
+from agents.larger_value import LargerValue
 
+# DEBUGGING
+from tensorflow.keras import Input, Model
+from tensorflow.keras.layers import Dense, Lambda, Add
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.losses import MeanSquaredError
+from tensorflow.keras.models import load_model as keras_load_model
+from tensorflow.keras.saving import register_keras_serializable
+import tensorflow as tf
 
 def run_room(
     training: bool,
-    model_path_dql: str,
-    model_path_attack: str,
+    model_path: str,
     save_room_log: bool,
     save_game_dataset: bool,
     matches: int,
     output_folder: str,
 ):
+    if training:
+        room_name = "Train_DQN"
+    else:
+        room_name = "Test_DQN"
     room = Room(
         run_remote_room=False,
-        room_name="Room_DQL_Test_New_DQN",
+        room_name=room_name,
         max_matches=matches,
         output_folder=output_folder,
         save_game_dataset=save_game_dataset,
@@ -30,39 +41,49 @@ def run_room(
         save_logs_room=False,
     )
 
-    #agents = [
-    #    RandomAgent(name=f"Random{i}", log_directory=room.room_dir, verbose_log=False)
-    #    for i in range(1)
-    #]
-    #for a in agents:
-    #    room.connect_player(a)
-    agent_random = RandomAgent(name=f"Random", log_directory=room.room_dir, verbose_log=False)
-    room.connect_player(agent_random)   
+    agents = [
+        RandomAgent(name=f"Random{i}", log_directory=room.room_dir, verbose_log=False)
+        for i in range(3)
+    ]
+    for a in agents:
+        room.connect_player(a)
+
+    # larger_value = LargerValue(
+    #     "Larger_Value", log_directory=room.room_dir, verbose_console=False
+    # )
+    # room.connect_player(larger_value)
+    reward = "defense"
+    # if training:
+    #     agent = AgentDQLCustomReward(
+    #         f"DQL_{reward}",
+    #         train=training,
+    #         log_directory=room.room_dir,
+    #         verbose_console=False,
+    #         model_path=os.path.join(room.room_dir, "dqn_model.h5"),
+    #         load_model=not training,
+    #         reward_type=reward,
+    #     )
+    # else:
+    #     agent = AgentDQLCustomReward(
+    #         f"DQL_{reward}",
+    #         train=training,
+    #         log_directory=room.room_dir,
+    #         verbose_console=False,
+    #         model_path=model_path,
+    #         load_model=not training,
+    #         reward_type=reward,
+    #     )
+
     agent = DQNAgent(
-        "DQL",
+        f"DQN",
         train=training,
         log_directory=room.room_dir,
         verbose_console=False,
-        model_path=model_path_dql,
+        model_path=model_path if not training else os.path.join(room.room_dir, "dqn_model.h5"),
         load_model=not training,
+     
     )
     room.connect_player(agent)
-    agent_dql_custom_reward = AgentDQLCustomReward(
-        "DQLCustomReward",
-        train=training,
-        log_directory=room.room_dir,
-        verbose_console=False,
-        model_path=model_path_attack,
-        load_model=not training,
-    )
-    
-    room.connect_player(agent_dql_custom_reward)
-    agent_larger_value = LargerValue(
-        "LargerValue",
-        log_directory=room.room_dir,
-        verbose_console=False
-    )
-    room.connect_player(agent_larger_value)
     asyncio.run(room.run())
 
     # --- Test mode sanity checks ---
@@ -75,7 +96,7 @@ def run_room(
             print(f"[TEST] Loaded target model: {target_path}")
         # Optionally: agent.model.summary()
 
-    return room, agent, agent_dql_custom_reward
+    return room, agent
 
 
 def plot_score_distribution(dataset_path: str, output_path: str):
@@ -95,47 +116,34 @@ def plot_score_distribution(dataset_path: str, output_path: str):
     plt.close()
 
 
+@register_keras_serializable()
+def dueling_lambda(a):
+    return a - tf.reduce_mean(a, axis=1, keepdims=True)
+
 if __name__ == "__main__":
-    model_file_dql = os.path.join("outputs", "dql_model.h5")
-    model_file_attack = os.path.join("outputs", "attack_agent_model.h5")
-    
-    now = datetime.now()
-    train_room, train_agent_dql, train_agent_attack = run_room(
-        True,
-        model_file_dql,
-        model_file_attack,
-        True,
-        False,
-        1000,
-        "outputs",
-    )
-    
-    # Plot results for regular DQL agent
-    train_agent_dql.plot_loss(os.path.join(train_room.room_dir, "dql_training_loss.png"))
-    train_agent_dql.plot_positions(os.path.join(train_room.room_dir, "dql_training_positions.png"))
-    train_agent_dql.plot_score_progression(os.path.join(train_room.room_dir, "dql_training_progression.png"))
-    
-    # Plot results for attack agent
-    train_agent_attack.plot_loss(os.path.join(train_room.room_dir, "attack_training_loss.png"))
-    train_agent_attack.plot_positions(os.path.join(train_room.room_dir, "attack_training_positions.png"))
-    train_agent_attack.plot_score_progression(os.path.join(train_room.room_dir, "attack_training_progression.png"))
-    #train_agent_attack.plot_time(os.path.join(train_room.room_dir, "attack_training_time.png"))
-    
-    print(f"TRAINING DONE! Training time: {(datetime.now() - now).total_seconds()}")
-    now = datetime.now()
-
-    # === TEST ===
-    test_room, test_agent_dql, test_agent_attack = run_room(
-        False, model_file_dql, model_file_attack, False, True, 100, "outputs_test"
-    )
-    
-    # Plot test results
-    test_agent_dql.plot_score_progression(os.path.join(test_room.room_dir, "dql_test_progression.png"))
-    test_agent_attack.plot_score_progression(os.path.join(test_room.room_dir, "attack_test_progression.png"))
-    
-    print(f"TESTING DONE! Testing time: {(datetime.now() - now).total_seconds()}")
-
-    # Optionally plot score distribution if dataset exists
-    # plot_score_distribution(
-    #     dataset_file, os.path.join(test_room.room_dir, "score_progression.png")
+    # model_file = os.path.join("src/agents/agent_dql_", "dqn_model.h5")
+    model_file = os.path.join("src/agents/agent_metric/def/cond1", "dqn_model.h5")
+    from tensorflow.keras.models import load_model
+    model = load_model(model_file)
+    print("Loaded model from:", model_file)
+    model.summary()
+    model_file = os.path.join("src/agents/agent_metric/def/cond2", "dqn_model.h5")
+    from tensorflow.keras.models import load_model
+    model = load_model(model_file)
+    print("Loaded model from:", model_file)
+    model.summary()
+    model_file = os.path.join("src/agents/agent_metric/def/cond3", "dqn_model.h5")
+    from tensorflow.keras.models import load_model
+    model = load_model(model_file)
+    print("Loaded model from:", model_file)
+    model.summary()
+    # test_room, test_agent = run_room(
+    #      False, model_file, False, True, 100, "outputs_test"
+    #  )
+    # dataset_file = os.path.join(test_room.room_dir, "dataset", "game_dataset.pkl.csv")
+    # test_agent.plot_score_progression(
+    #      os.path.join(test_room.room_dir, "score_progression.png")
     # )
+    
+    # print(f"TESTING DONE! Testing time: {(datetime.now() - now).total_seconds()}")
+

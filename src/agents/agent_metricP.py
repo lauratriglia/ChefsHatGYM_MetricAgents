@@ -1,4 +1,3 @@
-       
 from agents.agent_dqn import DQNAgent  
 from rewards.attack import RewardAttack  
 from rewards.defense import RewardDefense
@@ -16,9 +15,9 @@ import matplotlib.pyplot as plt
 def dueling_lambda(a):
     return a - tf.reduce_mean(a, axis=1, keepdims=True)
 
-class AgentDQLCustomReward(DQNAgent):
+class AgentDQLMetrics(DQNAgent):
     def __init__(self, name, reward_type="attack", *args, **kwargs):
-        kwargs.setdefault('state_size', 31) # Adjusted state size UNCOMMENTED IF YOU NEED TO USE THE CARDS REMANING 
+        kwargs['state_size'] = 79 # Force state size to 79 for consistency
         super().__init__(name, *args, **kwargs)
         
         # Select reward metric
@@ -59,9 +58,79 @@ class AgentDQLCustomReward(DQNAgent):
         model.compile(loss=Huber(), optimizer=Adam(learning_rate=lr))
         return model      
     
+    def get_card_probabilities(self, board):
+        # Deck composition: eleven 11s, ten 10s, ..., one 1, two jokers
+        deck = {i: 12 - i for i in range(1, 12)}  # 11:11, 10:10, ..., 1:1
+        deck['joker'] = 2
+        total_cards = 68
+
+        # Flatten board and remove zeros (empty slots)
+        discarded_cards = [card for card in np.array(board).flatten() if card != 0]
+        for card in discarded_cards:
+            if card in deck and deck[card] > 0:
+                deck[card] -= 1
+                total_cards -= 1
+
+        # Calculate probability for each card type
+        probabilities = []
+        for i in range(1, 12):
+            prob = (deck[i] / total_cards) if total_cards > 0 else 0
+            probabilities.append(prob)
+        # Joker
+        probabilities.append(deck['joker'] / total_cards if total_cards > 0 else 0)
+        return probabilities
+
+    def get_all_players_card_probabilities(self, hand, board, player_names=None):
+        """
+        Returns a dictionary mapping each player to their probability array.
+        'self' key for agent, others by name (or index if names not provided).
+        """
+        deck = {i: 12 - i for i in range(1, 12)}
+        deck['joker'] = 2
+        total_cards = 68
+
+        # Remove discarded cards from deck
+        discarded_cards = [card for card in np.array(board).flatten() if card != 0]
+        for card in discarded_cards:
+            if card in deck and deck[card] > 0:
+                deck[card] -= 1
+                total_cards -= 1
+
+        # Remove agent's own hand from deck for self-probability
+        hand_cards = [card for card in np.array(hand).flatten() if card != 0]
+        for card in hand_cards:
+            if card in deck and deck[card] > 0:
+                deck[card] -= 1
+                total_cards -= 1
+
+        # Probabilities for self (agent knows its hand)
+        self_probs = [1.0 if hand_cards.count(i) > 0 else 0.0 for i in range(1, 12)]
+        self_probs.append(1.0 if hand_cards.count('joker') > 0 else 0.0)
+
+        # Probabilities for other players (based on remaining deck)
+        other_probs = []
+        for _ in range(3):
+            probs = []
+            for i in range(1, 12):
+                prob = (deck[i] / total_cards) if total_cards > 0 else 0
+                probs.append(prob)
+            probs.append(deck['joker'] / total_cards if total_cards > 0 else 0)
+            other_probs.append(probs)
+
+        # Build dictionary
+        prob_dict = {}
+        prob_dict['self'] = self_probs
+        if player_names is None:
+            for idx in range(3):
+                prob_dict[f'player_{idx+1}'] = other_probs[idx]
+        else:
+            for idx, name in enumerate(player_names):
+                prob_dict[name] = other_probs[idx]
+        return prob_dict
+
     def request_action(self, observations):
-        hand = np.array(observations["hand"]).flatten() / 13
-        board = np.array(observations["board"]).flatten() / 13
+        hand = np.array(observations["hand"]).flatten()
+        board = np.array(observations["board"]).flatten()
         possible_actions_values = list(observations["possible_actions"])
 
         # Add card counts for other players
@@ -69,8 +138,15 @@ class AgentDQLCustomReward(DQNAgent):
         card_counts = [self.player_card_counts.get(p, 0) / 17 for p in all_players]
         while len(card_counts) < 3:
             card_counts.append(0)
+        # Get player names for probability dict (excluding self)
+        all_players = sorted(p for p in self.player_card_counts if p != self.name)
+        prob_dict = self.get_all_players_card_probabilities(hand, board, player_names=all_players)
         
-        obs = np.concatenate([hand, board, card_counts])
+        # Flatten all probabilities for state vector: self + others
+        card_probs = np.concatenate([prob_dict['self']] + [prob_dict[name] for name in all_players])
+        
+        obs = np.concatenate([hand / 13, board / 13, card_counts, card_probs])
+        
         possible_actions_mask = np.zeros(self.action_size, dtype=np.float32)
         valid_action_indices = [
             self.all_actions.index(val) for val in possible_actions_values
@@ -280,6 +356,6 @@ class AgentDQLCustomReward(DQNAgent):
         plt.savefig(path.replace('.png', '_metrics.png'))
         plt.close()
 
-    
+
 
 

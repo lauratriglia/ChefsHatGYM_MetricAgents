@@ -5,13 +5,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from agents.random_agent import RandomAgent
 from agents.agent_dqn import DQNAgent
+from agents.agent_dqn_31 import AgentDQN31
 from agents.agent_metric import AgentDQLCustomReward
+from agents.agent_metricP import AgentDQLMetrics
 from rooms.room import Room
 from datetime import datetime
 from agents.larger_value import LargerValue
 
 # Code for running a training or testing room with a DQL metric agent
-# Model saved in the trraining room folder and then loaded in the test room
+# Model saved in the training room folder and then loaded in the test room
 def run_room(
     training: bool,
     model_path: str,
@@ -41,9 +43,29 @@ def run_room(
     for a in agents:
         room.connect_player(a)
 
-    reward = "defense"
+    reward = "vitality"
+    # if training:
+    #     agent = AgentDQLCustomReward(
+    #         f"DQL_{reward}",
+    #         train=training,
+    #         log_directory=room.room_dir,
+    #         verbose_console=False,
+    #         model_path=os.path.join(room.room_dir, "dqn_model.h5"),
+    #         load_model=not training,
+    #         reward_type=reward,
+    #     )
+    # else:
+    #     agent = AgentDQLCustomReward(
+    #         f"DQL_{reward}",
+    #         train=training,
+    #         log_directory=room.room_dir,
+    #         verbose_console=False,
+    #         model_path=model_path,
+    #         load_model=not training,
+    #         reward_type=reward,
+    #     )
     if training:
-        agent = AgentDQLCustomReward(
+        agent = AgentDQLMetrics(
             f"DQL_{reward}",
             train=training,
             log_directory=room.room_dir,
@@ -53,7 +75,7 @@ def run_room(
             reward_type=reward,
         )
     else:
-        agent = AgentDQLCustomReward(
+        agent = AgentDQLMetrics(
             f"DQL_{reward}",
             train=training,
             log_directory=room.room_dir,
@@ -62,6 +84,16 @@ def run_room(
             load_model=not training,
             reward_type=reward,
         )
+
+    # agent = DQNAgent(
+    #     f"DQN",
+    #     train=training,
+    #     log_directory=room.room_dir,
+    #     verbose_console=False,
+    #     model_path=model_path if not training else os.path.join(room.room_dir, "dqn_model.h5"),
+    #     load_model=not training,
+     
+    # )
     room.connect_player(agent)
     asyncio.run(room.run())
 
@@ -103,7 +135,7 @@ if __name__ == "__main__":
         model_file,
         False,
         False,
-        500,
+        1000,
         "outputs",
     )
     train_agent.plot_loss(os.path.join(train_room.room_dir, "training_loss.png"))
@@ -118,6 +150,7 @@ if __name__ == "__main__":
         os.path.join(train_room.room_dir, "rewards_smoothed.png"),
         window=100,
     )
+
     print(f"TRAINING DONE! Training time: {(datetime.now() - now).total_seconds()}")
     now = datetime.now()
 
