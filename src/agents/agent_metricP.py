@@ -17,7 +17,8 @@ def dueling_lambda(a):
 
 class AgentDQLMetrics(DQNAgent):
     def __init__(self, name, reward_type="attack", *args, **kwargs):
-        kwargs['state_size'] = 79 # Force state size to 79 for consistency
+        # New state vector: hand(13) + board(13) + card_counts(3) + deck_counts(12) = 41
+        kwargs['state_size'] = 43 # Force state size to 43 for consistency with deck counts
         super().__init__(name, *args, **kwargs)
         
         # Select reward metric
@@ -60,7 +61,7 @@ class AgentDQLMetrics(DQNAgent):
     
     def get_card_probabilities(self, board):
         # Deck composition: eleven 11s, ten 10s, ..., one 1, two jokers
-        deck = {i: 12 - i for i in range(1, 12)}  # 11:11, 10:10, ..., 1:1
+        deck = {i: 12 - i for i in range(1, 12)}  # 11:11, 10:10, ..., 1:1vitality
         deck['joker'] = 2
         total_cards = 68
 
@@ -128,6 +129,39 @@ class AgentDQLMetrics(DQNAgent):
                 prob_dict[name] = other_probs[idx]
         return prob_dict
 
+    def get_deck_card_counts(self, hand, board, normalize=True):
+        """
+        Return a numpy array length 12 with remaining counts for cards 1..11 and joker.
+        Index 0 -> card 1, index 10 -> card 11, index 11 -> joker.
+
+        Deck composition (initial): card v has v copies for v in 1..11, and 2 jokers.
+        """
+        # Initialize deck counts: 1..11 -> counts equal to value, joker -> 2
+        deck = {i: i for i in range(1, 12)}
+        deck['joker'] = 2
+
+        # Subtract discarded cards from board
+        discarded_cards = [c for c in np.array(board).flatten() if c != 0]
+        for card in discarded_cards:
+            if card in deck and deck[card] > 0:
+                deck[card] -= 1
+
+        # Subtract agent's own hand cards
+        hand_cards = [c for c in np.array(hand).flatten() if c != 0]
+        for card in hand_cards:
+            if card in deck and deck[card] > 0:
+                deck[card] -= 1
+
+        # Build ordered array: card 1 .. 11, joker
+        counts = np.array([float(deck[i]) for i in range(1, 12)] + [float(deck['joker'])], dtype=np.float32)
+        if normalize:
+            # initial counts: card v has v copies (1..11), joker has 2
+            initial = np.array([float(i) for i in range(1, 12)] + [2.0], dtype=np.float32)
+            # avoid division by zero (shouldn't happen) but safe-guard
+            with np.errstate(divide='ignore', invalid='ignore'):
+                counts = np.where(initial > 0, counts / initial, 0.0)
+        return counts
+
     def request_action(self, observations):
         hand = np.array(observations["hand"]).flatten()
         board = np.array(observations["board"]).flatten()
@@ -138,14 +172,10 @@ class AgentDQLMetrics(DQNAgent):
         card_counts = [self.player_card_counts.get(p, 0) / 17 for p in all_players]
         while len(card_counts) < 3:
             card_counts.append(0)
-        # Get player names for probability dict (excluding self)
-        all_players = sorted(p for p in self.player_card_counts if p != self.name)
-        prob_dict = self.get_all_players_card_probabilities(hand, board, player_names=all_players)
-        
-        # Flatten all probabilities for state vector: self + others
-        card_probs = np.concatenate([prob_dict['self']] + [prob_dict[name] for name in all_players])
-        
-        obs = np.concatenate([hand / 13, board / 13, card_counts, card_probs])
+        # Build deck counts (12 values) and add to state vector
+        deck_counts = self.get_deck_card_counts(hand, board)
+
+        obs = np.concatenate([hand / 13, board / 13, card_counts, deck_counts])
         
         possible_actions_mask = np.zeros(self.action_size, dtype=np.float32)
         valid_action_indices = [
@@ -156,7 +186,7 @@ class AgentDQLMetrics(DQNAgent):
         action_index = self.act(obs, possible_actions_mask, valid_action_indices)
         action_str = self.all_actions[action_index]
 
-        # --- Reward Shaping (similar to original DQN) ---
+        
         shaped_reward = 0.0
         if action_str.lower() == "pass":
             shaped_reward -= 1.0

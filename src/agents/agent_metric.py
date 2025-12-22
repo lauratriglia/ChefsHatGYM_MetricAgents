@@ -18,7 +18,7 @@ def dueling_lambda(a):
 
 class AgentDQLCustomReward(DQNAgent):
     def __init__(self, name, reward_type="attack", *args, **kwargs):
-        kwargs.setdefault('state_size', 31) # Adjusted state size UNCOMMENTED IF YOU NEED TO USE THE CARDS REMANING 
+        kwargs.setdefault('state_size', 31)  # Adjusted state size UNCOMMENTED IF YOU NEED TO USE THE CARDS REMANING
         super().__init__(name, *args, **kwargs)
         
         # Select reward metric

@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 def dueling_lambda(a):
     return a - tf.reduce_mean(a, axis=1, keepdims=True)
 
-class AgentDQN31(DQNAgent):
+class DQNAgent31(DQNAgent):
     def __init__(self, name, *args, **kwargs):
         # Set default state_size for custom reward agent (hand + board + card_counts)
         kwargs.setdefault('state_size', 31)

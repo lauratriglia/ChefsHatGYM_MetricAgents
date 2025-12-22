@@ -5,14 +5,18 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from agents.random_agent import RandomAgent
 from agents.agent_dqn import DQNAgent
-from agents.agent_dqn_31 import AgentDQN31
+from agents.agent_dqn_31 import DQNAgent31
+from agents.agent_dqn_43 import AgentDQN43
 from agents.agent_metric import AgentDQLCustomReward
 from agents.agent_metricP import AgentDQLMetrics
 from rooms.room import Room
 from datetime import datetime
 from agents.larger_value import LargerValue
 
-# Code for running a training or testing room with a DQL metric agent
+# Code for running a training or testing room with a DQL metric agent in three different scenario (cond1, cond2, cond3)
+# Cond1: 28 state vector (no adding of the card remaining)
+# Cond2: 31 state vector (adding the card remaining)
+# Cond3: 43 state vector (adding the card remaining + counting the cards remaining in the deck)
 # Model saved in the training room folder and then loaded in the test room
 def run_room(
     training: bool,
@@ -44,28 +48,8 @@ def run_room(
         room.connect_player(a)
 
     reward = "vitality"
-    # if training:
-    #     agent = AgentDQLCustomReward(
-    #         f"DQL_{reward}",
-    #         train=training,
-    #         log_directory=room.room_dir,
-    #         verbose_console=False,
-    #         model_path=os.path.join(room.room_dir, "dqn_model.h5"),
-    #         load_model=not training,
-    #         reward_type=reward,
-    #     )
-    # else:
-    #     agent = AgentDQLCustomReward(
-    #         f"DQL_{reward}",
-    #         train=training,
-    #         log_directory=room.room_dir,
-    #         verbose_console=False,
-    #         model_path=model_path,
-    #         load_model=not training,
-    #         reward_type=reward,
-    #     )
     if training:
-        agent = AgentDQLMetrics(
+        agent = AgentDQLCustomReward(
             f"DQL_{reward}",
             train=training,
             log_directory=room.room_dir,
@@ -75,7 +59,7 @@ def run_room(
             reward_type=reward,
         )
     else:
-        agent = AgentDQLMetrics(
+        agent = AgentDQLCustomReward(
             f"DQL_{reward}",
             train=training,
             log_directory=room.room_dir,
@@ -84,8 +68,28 @@ def run_room(
             load_model=not training,
             reward_type=reward,
         )
-
-    # agent = DQNAgent(
+    # if training:
+    #     agent = AgentDQLMetrics(
+    #         f"DQL_{reward}",
+    #         train=training,
+    #         log_directory=room.room_dir,
+    #         verbose_console=False,
+    #         model_path=os.path.join(room.room_dir, "dqn_model.h5"),
+    #         load_model=not training,
+    #         reward_type=reward,
+    #     )
+    # else:
+    #     agent = AgentDQLMetrics(
+    #         f"DQL_{reward}",
+    #         train=training,
+    #         log_directory=room.room_dir,
+    #         verbose_console=False,
+    #         model_path=model_path,
+    #         load_model=not training,
+    #         reward_type=reward,
+    #     )
+    
+    # agent = AgentDQN43(
     #     f"DQN",
     #     train=training,
     #     log_directory=room.room_dir,

@@ -12,7 +12,7 @@ def get_nth_latest_subfolder(parent_folder, n=1):
     return subfolders[-n]
 
 # Example usage:
-latest_outputs = get_nth_latest_subfolder("outputs", n=2)
+latest_outputs = get_nth_latest_subfolder("outputs", n=1)
 latest_outputs_test = get_nth_latest_subfolder("outputs_test", n=1)
 print("Third most recent subfolder:", latest_outputs)
 print("Third most recent subfolder:", latest_outputs_test)
@@ -34,18 +34,18 @@ img_paths = [os.path.join(latest_outputs, name) for name in img_names]
 # Score progression from outputs_test
 score_img = os.path.join(latest_outputs_test, "score_progression.png")
 img_paths.append(score_img)
-reward = "Defense"
-abbr = "def"
+reward = "Vitality"  
+abbr = "atk"
 # External images (update these paths as needed)
 # DQL METRIC IMAGES
-external_img1 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_{abbr}/__{reward}_comparison.png"
-external_img2 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_{abbr}/boxplot_{reward}.png"
-external_img3 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_{abbr}/all_metric_comparisons.png"
+# external_img1 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_{abbr}/__{reward}_comparison.png"
+# external_img2 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_{abbr}/boxplot_{reward}.png"
+# external_img3 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_{abbr}/all_metric_comparisons.png"
 
 # DQL IMAGES
-# external_img1 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_/__{reward}_comparison.png"
-# external_img2 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_/boxplot_{reward}.png"
-# external_img3 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_/all_metric_comparisons.png"
+external_img1 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_/__{reward}_comparison.png"
+external_img2 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_/boxplot_{reward}.png"
+external_img3 = f"/usr/local/src/robot/cognitiveInteraction/MetricsChefsHat/MetricsPlots/DQL_/all_metric_comparisons.png"
 
 img_paths.extend([external_img1, external_img2, external_img3])
 

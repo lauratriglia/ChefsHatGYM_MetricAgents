@@ -73,9 +73,9 @@ class DQNAgent(BaseAgent):
         self.score_history = []
         self.all_actions = None
         self.verbose_console = verbose_console
+
         self.rewards = []
 
-        model_path = os.path.join(log_directory, "model", "dql_model.h5")
         if model_path is not None and load_model and os.path.exists(model_path):
             print(f"Loading main model from {model_path}")
             self.model = keras_load_model(
@@ -182,13 +182,6 @@ class DQNAgent(BaseAgent):
             return
 
         minibatch = random.sample(self.memory, self.batch_size)
-        # Debug: print state shapes before stacking
-        for idx, x in enumerate(minibatch):
-            state = x[0]
-            if hasattr(state, 'shape'):
-                print(f"Minibatch state {idx} shape: {state.shape}, len: {len(state)}")
-            else:
-                print(f"Minibatch state {idx} type: {type(state)}, len: {len(state)}")
         states = np.array([x[0] for x in minibatch])
         possible_actions_batch = np.array([x[1] for x in minibatch])
         actions = np.array([x[2] for x in minibatch])
@@ -314,8 +307,7 @@ class DQNAgent(BaseAgent):
         scores = payload.get("scores", {})
         player_name = self.name
 
-        # print(f"Scores: {payload['scores']} ")
-        self.score_history.append(payload["scores"].copy())
+        self.score_history.append(payload["scores"])
 
         try:
             place = finishing_order.index(player_name) + 1
@@ -323,6 +315,8 @@ class DQNAgent(BaseAgent):
             place = len(finishing_order)
 
         reward, place = self._get_final_reward_and_place(payload)
+        # print(f"Reward: {reward}")
+
         self.rewards.append(reward)
         self.positions.append(place)
 
@@ -358,12 +352,11 @@ class DQNAgent(BaseAgent):
         except ValueError:
             place = len(finishing_order) if finishing_order else 4
 
-        # reward = scores.get(player_name, 0)
-        # print(f"Fiishing order: {finishing_order}")
-        reward = 3 if place == 1 else -0.02
-        # print(f"Finishing order: {place}")
+        # print(f"Here: {payload}")
+        reward = scores.get(player_name, 0)
+        # print(f"Place: {4 - place}")
         # print(f"Reward: {reward}")
-        return reward, place
+        return (4 - place), place
 
     # Plotting functions unchanged
 
@@ -424,6 +417,33 @@ class DQNAgent(BaseAgent):
         plt.savefig(path)
         plt.close()
 
+    def plot_score_progression(self, path: str):
+        """
+        Plots the score progression for each player over matches.
+        - score_history: list of dicts, each dict is {player: score} for one match.
+        """
+        import matplotlib.pyplot as plt
+
+        # Build cumulative score for each player
+        players = sorted(list(self.score_history[0].keys()))
+        scores_per_player = {p: [] for p in players}
+        cumulative = {p: 0 for p in players}
+        for match in self.score_history:
+            for p in players:
+                cumulative[p] = match[p]
+                scores_per_player[p].append(cumulative[p])
+
+        plt.figure(figsize=(8, 5))
+        for p in players:
+            plt.plot(scores_per_player[p], label=p)
+        plt.xlabel("Match")
+        plt.ylabel("Cumulative Score")
+        plt.title("Score Progression per Player")
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(path)
+        plt.close()
+
     def plot_rewards(self, path: str, path_averaged: str, window: int = 10):
         import matplotlib.pyplot as plt
 
@@ -474,31 +494,4 @@ class DQNAgent(BaseAgent):
         plt.legend()
         plt.tight_layout()
         plt.savefig(path_averaged)
-        plt.close()
-
-    def plot_score_progression(self, path: str):
-        """
-        Plots the score progression for each player over matches.
-        - score_history: list of dicts, each dict is {player: score} for one match.
-        """
-        import matplotlib.pyplot as plt
-
-        # Build cumulative score for each player
-        players = sorted(list(self.score_history[0].keys()))
-        scores_per_player = {p: [] for p in players}
-        cumulative = {p: 0 for p in players}
-        for match in self.score_history:
-            for p in players:
-                cumulative[p] = match[p]
-                scores_per_player[p].append(cumulative[p])
-
-        plt.figure(figsize=(8, 5))
-        for p in players:
-            plt.plot(scores_per_player[p], label=p)
-        plt.xlabel("Match")
-        plt.ylabel("Cumulative Score")
-        plt.title("Score Progression per Player")
-        plt.legend()
-        plt.tight_layout()
-        plt.savefig(path)
         plt.close()

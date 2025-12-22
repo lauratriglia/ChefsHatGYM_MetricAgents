@@ -8,7 +8,7 @@ class RewardVitality:
         """
         Computes reward based on vitality (number of discards by the agent).
         Returns reward, attack, defense, vitality.
-        Reward: 3 if vitality > 1, else -0.05
+        Reward: 3 if vitality = 1, else -0.05
         """
         try:
             actions = info.get("player_actions")  # list of (player, action)
@@ -18,12 +18,30 @@ class RewardVitality:
                 return -0.05, 0, 0, 0
 
             # Count vitality: number of discards by the agent (non-pass)
-            vitality = sum(1 for player, action in actions if player == agent_name and action != "pass")
+            discard_index = None
+            vitality = 0
+            for i, (player, action) in enumerate(actions):
+                if player == agent_name and action != "pass":
+                    discard_index = i
+                    break
 
-            # Dummy attack/defense for compatibility
+            if discard_index is None:
+                return -1.0, 0, 0, vitality  # No discard
+
+            # Defense: count passes before discard
+            defense = sum(1 for _, action in actions[:discard_index] if action == "pass")
+
+            # Attack: count passes after discard
             attack = 0
-            defense = 0
-
+            for _, action in actions[discard_index + 1:]:
+                if action == "pass":
+                    attack += 1
+                else:
+                    break
+                if attack == 3:
+                    break
+            
+            vitality = sum(1 for player, action in actions if player == agent_name and action != "pass")
             # Reward logic
             if vitality == 1:
                 reward = 3.0
