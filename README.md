@@ -1,4 +1,3 @@
-## TO DO
-- [X] DQL atk, def and vit 28 states
-- [X] Reward vitality
-- [X] New state with the probability of the deck and how many cards each agents has in the hand
+## Description of the agents   
+Agent metrics P: Agent for the metrics with 43 state size (Condition 3)
+Agent metrics: Agent for the metrics with 31 state size (Condition 2)
